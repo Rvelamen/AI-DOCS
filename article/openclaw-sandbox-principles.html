@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw 沙箱原理 — 安全隔离机制详解</title>
+<link rel="stylesheet" href="../assets/css/article-style.css">
+<style>
+/* Page-specific accent override */
+:root{
+  --accent:#38bdf8;
+  --accent-soft:rgba(56,189,248,.12);
+  --accent-rgb:56,189,248;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== ARTICLE HEADER ===== -->
+<header class="article-header">
+  <div class="article-tags">
+    <span>OpenClaw</span>
+    <span>安全</span>
+    <span>沙箱</span>
+  </div>
+  <h1>OpenClaw 沙箱原理</h1>
+  <p class="lead">只隔离 Agent 的工具执行——LLM 对话、路由调度等核心逻辑始终在宿主机运行。一个可选的安全增强层，而非运行时依赖。</p>
+  <div class="meta">2026-05-22 · 阅读约 8 分钟</div>
+</header>
+
+<!-- ===== ARTICLE LAYOUT ===== -->
+<div class="article-layout">
+
+<!-- ===== SIDEBAR TOC ===== -->
+<aside class="toc-sidebar">
+  <h4>目录</h4>
+  <ul>
+    <li><a href="#sec-mode">沙箱模式</a></li>
+    <li><a href="#sec-tools">工具隔离</a></li>
+    <li><a href="#sec-config">默认安全配置</a></li>
+    <li><a href="#sec-fs">文件系统访问</a></li>
+    <li><a href="#sec-boundary">安全边界</a></li>
+    <li><a href="#sec-backend">后端选择</a></li>
+  </ul>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="article-main">
+<div class="prose">
+
+<p>OpenClaw 的沙箱仅隔离 <strong>exec、read、write</strong> 等工具执行，Gateway 进程本身、LLM 对话、路由调度等核心逻辑始终在宿主机运行。<strong>只隔离了 Agent 的工具执行。</strong></p>
+
+<h2 id="sec-mode"><span class="num">01</span>沙箱模式</h2>
+
+<p>沙箱通过 <code>sandbox.mode</code> 配置控制，有三种模式可选：</p>
+
+<table class="data-table">
+  <thead>
+    <tr><th>模式</th><th>行为</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>off</code>（默认）</td><td>不使用沙箱，所有工具直接在宿主机执行</td></tr>
+    <tr><td><code>non-main</code></td><td>仅对非主会话沙箱（群组/频道会话被沙箱，主会话不沙箱）</td></tr>
+    <tr><td><code>all</code></td><td>所有会话都在沙箱中执行</td></tr>
+  </tbody>
+</table>
+
+<div class="callout info">
+  <strong>💡 提示：</strong>默认关闭时所有工具就像普通程序一样直接在宿主机执行，完全不需要 Docker。只有主动配置 <code>sandbox.mode = "all"</code> 或 <code>"non-main"</code> 时才需要 Docker。
+</div>
+
+<h2 id="sec-tools"><span class="num">02</span>沙箱里执行哪些工具？</h2>
+
+<p>沙箱内可以执行 shell 命令、读写文件、管理子会话，但不能使用浏览器、定时任务、网关管理、消息通道等敏感操作。允许和拒绝的工具列表定义在 <code>sandbox/constants.ts</code> 中：</p>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang">typescript</span><span class="file">sandbox/constants.ts</span></div>
+  <pre><span class="comment">// 默认允许的工具（13 个）</span>
+<span class="key">exec</span>, <span class="key">process</span>, <span class="key">read</span>, <span class="key">write</span>, <span class="key">edit</span>, <span class="key">apply_patch</span>,
+<span class="key">image</span>, <span class="key">sessions_list</span>, <span class="key">sessions_history</span>, <span class="key">sessions_send</span>,
+<span class="key">sessions_spawn</span>, <span class="key">sessions_yield</span>, <span class="key">subagents</span>, <span class="key">session_status</span>
+
+<span class="comment">// 默认拒绝的工具</span>
+<span class="warn">browser</span>, <span class="warn">canvas</span>, <span class="warn">nodes</span>, <span class="warn">cron</span>, <span class="warn">gateway</span>,
+<span class="warn">以及所有 channel 工具</span></pre>
+</div>
+
+<p>沙箱内可以执行 shell 命令、读写文件、管理子会话，但不能使用浏览器、定时任务、网关管理、消息通道等敏感操作。</p>
+
+<h2 id="sec-config"><span class="num">03</span>沙箱默认安全配置</h2>
+
+<p>沙箱的安全行为由多项配置控制，包括资源限制、网络策略、挂载规则等。<strong>这些都是可配置项。</strong>以下是默认的安全配置：</p>
+
+<figure class="figure">
+  <img src="../assets/sandbox_default_security.png" alt="沙箱默认安全配置表">
+  <figcaption>沙箱默认安全配置表</figcaption>
+</figure>
+
+<p>这些配置确保了沙箱容器以最小权限运行：<code>readOnlyRoot</code> 使根文件系统只读，<code>capDrop: ALL</code> 丢弃全部 Linux capabilities，<code>no-new-privileges</code> 禁止提权，<code>seccomp</code> 和 <code>apparmor</code> 提供系统调用过滤和强制访问控制。</p>
+
+<h2 id="sec-fs"><span class="num">04</span>沙箱文件系统访问</h2>
+
+<p><strong>FsBridge</strong> 是沙箱文件操作的安全代理，负责在容器内安全地执行读写删改，同时防范<strong>路径逃逸</strong>和 <strong>TOCTOU</strong> 攻击。OpenClaw 自己实现，非第三方工具。</p>
+
+<div class="callout warn">
+  <strong>⚠️ 注意：</strong>OpenClaw 没有实现同步机制，在 <code>none</code> 网络模型下，操作的文件都需要<strong>手动同步</strong>。
+</div>
+
+<p>各 <code>workspaceAccess</code> 配置影响沙箱对宿主文件系统的可见性与可写性：</p>
+
+<figure class="figure">
+  <img src="../assets/sandbox_workspaceAccess_config.png" alt="workspaceAccess 配置含义">
+  <figcaption>workspaceAccess 配置含义</figcaption>
+</figure>
+
+<figure class="figure">
+  <img src="../assets/sandbox_workspaceAccess_impact.png" alt="workspaceAccess 对宿主机文件的影响">
+  <figcaption>workspaceAccess 对宿主机文件的影响</figcaption>
+</figure>
+
+<h2 id="sec-boundary"><span class="num">05</span>沙箱安全边界</h2>
+
+<h3>5.1 被禁止的 bind 挂载路径</h3>
+
+<p>以下路径<strong>绝不允许</strong>挂载进沙箱容器，包括 Docker socket（挂载等于交出宿主机控制权）和用户凭据目录：</p>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang">typescript</span><span class="file">validate-sandbox-security.ts</span></div>
+  <pre><span class="key">const</span> <span class="string">BLOCKED_HOST_PATHS</span> = [
+  <span class="string">"/etc"</span>, <span class="string">"/private/etc"</span>, <span class="string">"/proc"</span>, <span class="string">"/sys"</span>, <span class="string">"/dev"</span>,
+  <span class="string">"/root"</span>, <span class="string">"/boot"</span>, <span class="string">"/run"</span>, <span class="string">"/var/run"</span>,
+  <span class="string">"/private/var/run"</span>, <span class="string">"/var/run/docker.sock"</span>,
+  <span class="string">"/private/var/run/docker.sock"</span>, <span class="string">"/run/docker.sock"</span>,
+];
+
+<span class="key">const</span> <span class="string">BLOCKED_HOME_SUBPATHS</span> = [
+  <span class="string">".aws"</span>, <span class="string">".cargo"</span>, <span class="string">".config"</span>, <span class="string">".docker"</span>,
+  <span class="string">".gnupg"</span>, <span class="string">".netrc"</span>, <span class="string">".npm"</span>, <span class="string">".ssh"</span>,
+];</pre>
+</div>
+
+<h3>5.2 被禁止的网络模式</h3>
+
+<table class="data-table">
+  <thead>
+    <tr><th>网络模式</th><th>策略</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>network: "host"</code></td><td><strong>始终被阻止</strong></td></tr>
+    <tr><td><code>network: "container:&lt;id&gt;"</code></td><td>默认阻止，需 <code>dangerouslyAllowContainerNamespaceJoin: true</code></td></tr>
+  </tbody>
+</table>
+
+<h3>5.3 被过滤的环境变量</h3>
+
+<p>所有 API Key、Token、密码、私钥相关的环境变量被阻止传入沙箱。只允许基础的系统环境变量（LANG、PATH、HOME 等）通过：</p>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang">typescript</span><span class="file">sanitize-env-vars.ts</span></div>
+  <pre><span class="key">const</span> <span class="string">BLOCKED_ENV_VAR_PATTERNS</span>: ReadonlyArray&lt;RegExp&gt; = [
+  <span class="comment">// 各平台 API Key</span>
+  <span class="value">/^ANTHROPIC_API_KEY$/i</span>,
+  <span class="value">/^OPENAI_API_KEY$/i</span>,
+  <span class="value">/^GEMINI_API_KEY$/i</span>,
+  <span class="value">/^OPENROUTER_API_KEY$/i</span>,
+  <span class="value">/^MINIMAX_API_KEY$/i</span>,
+  <span class="value">/^ELEVENLABS_API_KEY$/i</span>,
+  <span class="comment">// 通信 Token</span>
+  <span class="value">/^TELEGRAM_BOT_TOKEN$/i</span>,
+  <span class="value">/^DISCORD_BOT_TOKEN$/i</span>,
+  <span class="value">/^SLACK_(BOT|APP)_TOKEN$/i</span>,
+  <span class="value">/^LINE_CHANNEL_(SECRET|ACCESS_TOKEN)$/i</span>,
+  <span class="value">/^OPENCLAW_GATEWAY_(TOKEN|PASSWORD)$/i</span>,
+  <span class="comment">// 云凭证</span>
+  <span class="value">/^AWS_(SECRET_ACCESS_KEY|SECRET_KEY|SESSION_TOKEN)$/i</span>,
+  <span class="value">/^(GH|GITHUB)_TOKEN$/i</span>,
+  <span class="value">/^(AZURE|AZURE_OPENAI|COHERE|AI_GATEWAY|OPENROUTER)_API_KEY$/i</span>,
+  <span class="comment">// 通用敏感模式</span>
+  <span class="value">/_?(API_KEY|TOKEN|PASSWORD|PRIVATE_KEY|SECRET)$/i</span>,
+];
+
+<span class="key">const</span> <span class="string">ALLOWED_ENV_VAR_PATTERNS</span>: ReadonlyArray&lt;RegExp&gt; = [
+  <span class="value">/^LANG$/</span>, <span class="value">/^LC_.*$/i</span>, <span class="value">/^PATH$/i</span>,
+  <span class="value">/^HOME$/i</span>, <span class="value">/^USER$/i</span>, <span class="value">/^SHELL$/i</span>,
+  <span class="value">/^TERM$/i</span>, <span class="value">/^TZ$/i</span>, <span class="value">/^NODE_ENV$/i</span>,
+];</pre>
+</div>
+
+<h2 id="sec-backend"><span class="num">06</span>沙箱类型与后端选择</h2>
+
+<p><code>agents.defaults.sandbox.backend</code> 控制哪个运行时提供沙箱。OpenClaw 支持三种后端：</p>
+
+<figure class="figure">
+  <img src="../assets/sandbox_backend_compare.png" alt="三种后端对比">
+  <figcaption>Docker / SSH / OpenShell 三种后端对比</figcaption>
+</figure>
+
+<p>SSH 特有的配置位于 <code>agents.defaults.sandbox.ssh.*</code>，OpenShell 特有的配置位于 <code>plugins.entries.openshell.config.*</code>。</p>
+
+<p>沙箱的作用域决定了容器的隔离粒度：</p>
+
+<figure class="figure">
+  <img src="../assets/sandbox_scope.png" alt="沙箱作用域">
+  <figcaption>沙箱作用域：agent（默认）、session、shared</figcaption>
+</figure>
+
+<div class="callout info">
+  <strong>🔑 关键认知：</strong>OpenClaw 的沙箱是一个<strong>可选的安全增强层</strong>，不是运行时依赖。默认关闭时所有工具直接在你的机器上执行。只有主动启用沙箱模式时，才需要 Docker（或其他后端）来创建隔离的执行环境。
+</div>
+
+</div><!-- /.prose -->
+</main>
+
+</div><!-- /.article-layout -->
+
+<!-- ===== FOOTER ===== -->
+<footer class="article-footer">
+  <p>基于 <a href="https://github.com/openclaw/openclaw" target="_blank">OpenClaw</a> 官方文档整理 · 内容来源：docs.openclaw.ai</p>
+  <p style="margin-top:8px;opacity:.5">sandboxing.md</p>
+</footer>
+
+<script src="../assets/js/nav.js"></script>
+<script>
+// TOC highlight on scroll
+const tocLinks=document.querySelectorAll('.toc-sidebar a');
+const headings=document.querySelectorAll('.prose h2[id]');
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      tocLinks.forEach(link=>link.classList.remove('active'));
+      const active=document.querySelector(`.toc-sidebar a[href="#${entry.target.id}"]`);
+      if(active)active.classList.add('active');
+    }
+  });
+},{rootMargin:'-80px 0px -60% 0px',threshold:0});
+headings.forEach(h=>observer.observe(h));
+</script>
+
+</body>
+</html>

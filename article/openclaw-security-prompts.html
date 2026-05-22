@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw 安全提示词 — 五维安全防线</title>
+<link rel="stylesheet" href="../assets/css/article-style.css">
+<style>
+/* Page-specific accent override */
+:root{
+  --accent:#f472b6;
+  --accent-soft:rgba(244,114,182,.12);
+  --accent-rgb:244,114,182;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== ARTICLE HEADER ===== -->
+<header class="article-header">
+  <div class="article-tags">
+    <span>OpenClaw</span>
+    <span>安全</span>
+    <span>提示词</span>
+  </div>
+  <h1>OpenClaw 安全提示词</h1>
+  <p class="lead">从核心安全原则到工具调用审批，从沙箱隔离到工作区路径管理——五维安全防线，确保 Agent 在受控范围内运行。</p>
+  <div class="meta">2026-05-22 · 阅读约 6 分钟 · src/agents/system-prompt.ts</div>
+</header>
+
+<!-- ===== ARTICLE LAYOUT ===== -->
+<div class="article-layout">
+
+<!-- ===== SIDEBAR TOC ===== -->
+<aside class="toc-sidebar">
+  <h4>目录</h4>
+  <ul>
+    <li><a href="#sec-core">核心安全提示词</a></li>
+    <li><a href="#sec-control">Control 控制安全</a></li>
+    <li><a href="#sec-tools">工具调用安全</a></li>
+    <li><a href="#sec-sandbox">沙箱安全</a></li>
+    <li><a href="#sec-workspace">Workspace 工作区路径</a></li>
+  </ul>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="article-main">
+<div class="prose">
+
+<p>OpenClaw 的安全体系通过系统提示词注入的方式，在每一次 LLM 调用时约束 Agent 的行为边界。这些提示词位于 <code>src/agents/system-prompt.ts</code> 中，构成 Agent 无法绕过的第一层安全防线。</p>
+
+<h2 id="sec-core"><span class="num">01</span>核心安全提示词</h2>
+
+<p>系统提示词中嵌入的核心安全原则，直接约束 Agent 的行为边界。这些规则以提示词形式注入每一次 LLM 调用，构成最基础的安全防线。</p>
+
+<figure class="figure">
+  <img src="../assets/security_core_safety.png" alt="核心安全提示词源码">
+  <figcaption>safetySection — 核心安全提示词源码（第 915-921 行）</figcaption>
+</figure>
+
+<p>从源码中可以看到，核心安全提示词包含四条硬性约束：</p>
+
+<ul>
+  <li><strong>禁止自主目标</strong> — 无自我保存、复制、资源获取、权力寻求行为。Agent 不得产生自我保护或扩张的动机。</li>
+  <li><strong>安全优先于完成度</strong> — 当安全与任务完成发生冲突时，<strong>暂停执行并询问用户</strong>，而非强行推进。</li>
+  <li><strong>禁止扩大权限</strong> — 不得说服用户扩大访问范围或禁用安全措施。Agent 不能诱导用户降低安全级别。</li>
+  <li><strong>禁止自我复制</strong> — 不得复制自身或修改提示词 / 安全策略 / 工具策略。防止自我篡改和未授权传播。</li>
+</ul>
+
+<p>这些规则以字符串数组的形式直接注入系统提示词，Agent 在每次推理时都会将其作为上下文的一部分。这不是配置项，而是硬编码在系统行为中的约束。</p>
+
+<h2 id="sec-control"><span class="num">02</span>Control 控制安全</h2>
+
+<p>防止 Agent 通过幻觉式命令或自主操作对系统造成意外影响。涉及系统生命周期和全局状态的操作必须受控。</p>
+
+<figure class="figure">
+  <img src="../assets/security_control.png" alt="Control 控制安全源码">
+  <figcaption>OpenClaw Control — 控制安全提示词源码（第 1090-1096 行）</figcaption>
+</figure>
+
+<p>Control 安全提示词主要约束两个方面：</p>
+
+<ul>
+  <li><strong>禁止捏造命令</strong> — 防止幻觉式执行不存在的指令。Agent 必须确认命令存在且合法后方可执行。</li>
+  <li><strong>生命周期操作需显式用户请求</strong> — 重启、停止等系统级操作必须由用户<strong>明确发起</strong>，禁止 Agent 自主决定。配置和重启操作优先使用 <code>gateway</code> 工具，CLI 生命周期命令仅在用户显式请求时执行。</li>
+</ul>
+
+<h2 id="sec-tools"><span class="num">03</span>工具调用安全</h2>
+
+<p>工具调用是 Agent 与外部世界交互的主要通道，也是安全风险最集中的环节。OpenClaw 通过多层审批机制确保每一条命令都经过适当授权。</p>
+
+<figure class="figure">
+  <img src="../assets/security_tool_call.png" alt="工具调用安全源码">
+  <figcaption>Tool Call Style &amp; Approval — 工具调用安全提示词源码（第 1064-1079 行）</figcaption>
+</figure>
+
+<p>工具调用安全包含三层防护：</p>
+
+<ul>
+  <li><strong>审批命令隔离</strong> — <code>/approve</code> 只能由用户发起，禁止通过 <code>exec</code> 等路径绕过审批流程。<code>/approve</code> 是一个面向用户的审批命令，不是 shell 命令。</li>
+  <li><strong>单次授权原则</strong> — <code>allow-once</code> 仅覆盖单条命令，<strong>不得跨命令复用授权</strong>。每次执行都需要独立确认。</li>
+  <li><strong>命令完整性展示</strong> — 审批时必须展示<strong>完整命令</strong>（含链式操作符 <code>&&</code>、<code>;</code>、<code>|</code> 等），防止隐藏实际执行内容。</li>
+</ul>
+
+<p>此外，提示词还规定了一类工具调用规范：低风险调用不需要叙述，仅在复杂、敏感/破坏性或用户明确要求时才进行叙述；存在一等工具时应直接使用，不要要求用户运行等效的 CLI/slash 命令。</p>
+
+<h2 id="sec-sandbox"><span class="num">04</span>沙箱安全</h2>
+
+<p>沙箱是工具执行层面的物理隔离层。即使提示词层面的安全约束被绕过，沙箱仍能提供最后一道防线。</p>
+
+<figure class="figure">
+  <img src="../assets/security_sandbox.png" alt="沙箱安全源码">
+  <figcaption>Sandbox — 沙箱安全提示词源码（第 1129-1137 行）</figcaption>
+</figure>
+
+<p>沙箱安全提示词在沙箱启用时动态注入，包含以下约束：</p>
+
+<ul>
+  <li><strong>沙箱隔离</strong> — 工具在 <strong>Docker 容器</strong>中执行，与宿主机环境隔离。敏感操作被限制在容器边界内。部分工具可能因沙箱策略而不可用。</li>
+  <li><strong>子代理继承沙箱</strong> — 子代理<strong>无法获得提升或宿主访问权限</strong>。沙箱权限在代理链中向下传递，不会向上逃逸。需要沙箱外读写时，不要 spawn 子代理，先询问用户。</li>
+  <li><strong>ACP Harness 限制</strong> — ACP harness 的 spawn 被阻止在沙箱会话中使用（<code>sessions_spawn</code> 且 <code>runtime: "acp"</code>），应改用 <code>runtime: "subagent"</code>。</li>
+</ul>
+
+<h2 id="sec-workspace"><span class="num">05</span>Workspace 工作区路径</h2>
+
+<p>路径层面的隔离确保 Agent 在正确的上下文中操作文件，防止因路径混淆导致的越权访问。</p>
+
+<figure class="figure">
+  <img src="../assets/security_workspace.png" alt="Workspace 路径隔离源码">
+  <figcaption>Workspace Path Resolution — 工作区路径提示词源码（第 912-914 行）</figcaption>
+</figure>
+
+<p>路径隔离的核心规则：</p>
+
+<ul>
+  <li><strong>路径隔离</strong> — 对于 <code>read/write/edit/apply_patch</code> 操作，文件路径解析到宿主机工作区 <code>${sanitizedWorkspaceDir}</code>；对于 <code>bash/exec</code> 命令，使用沙箱容器路径。</li>
+  <li><strong>相对路径优先</strong> — 将此目录视为文件操作的单一全局工作区，除非另有明确指示。避免使用绝对路径，防止路径混淆导致越权访问。</li>
+</ul>
+
+<div class="callout info">
+  <strong>📝 总结：</strong>OpenClaw 的安全提示词体系从五个维度构建了一道纵深防线——核心安全原则约束 Agent 的内在动机，Control 控制防止系统级误操作，工具调用审批隔离危险命令执行，沙箱提供物理隔离层，Workspace 路径隔离确保文件操作安全。这五个维度层层递进，即使某一维度被绕过，其他维度仍能提供保护。
+</div>
+
+</div><!-- /.prose -->
+</main>
+
+</div><!-- /.article-layout -->
+
+<!-- ===== FOOTER ===== -->
+<footer class="article-footer">
+  <p>基于 <a href="https://github.com/openclaw/openclaw" target="_blank">OpenClaw</a> 官方文档整理 · 内容来源：docs.openclaw.ai</p>
+  <p style="margin-top:8px;opacity:.5">src/agents/system-prompt.ts</p>
+</footer>
+
+<script src="../assets/js/nav.js"></script>
+<script>
+// TOC highlight on scroll
+const tocLinks=document.querySelectorAll('.toc-sidebar a');
+const headings=document.querySelectorAll('.prose h2[id]');
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      tocLinks.forEach(link=>link.classList.remove('active'));
+      const active=document.querySelector(`.toc-sidebar a[href="#${entry.target.id}"]`);
+      if(active)active.classList.add('active');
+    }
+  });
+},{rootMargin:'-80px 0px -60% 0px',threshold:0});
+headings.forEach(h=>observer.observe(h));
+</script>
+
+</body>
+</html>

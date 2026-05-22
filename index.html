@@ -1,224 +1,448 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Docs — 技术文档站</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg-deep:#0a0c10;
-  --bg-surface:#11141b;
-  --bg-card:#161a24;
-  --bg-card-hover:#1c2130;
-  --border:#252a38;
-  --border-active:#3a4160;
-  --text-primary:#e8eaf0;
-  --text-secondary:#8b90a5;
-  --text-muted:#555a70;
-  --accent:#c084fc;
-  --accent-glow:rgba(192,132,252,.12);
-  --radius:16px;
-  --radius-sm:10px;
-  --mono:'JetBrains Mono',monospace;
-  --serif:'Noto Serif SC',serif;
-  --sans:'Inter',system-ui,sans-serif;
-}
-html{scroll-behavior:smooth;font-size:16px}
-body{
-  background:var(--bg-deep);color:var(--text-primary);
-  font-family:var(--sans);line-height:1.7;
-  overflow-x:hidden;-webkit-font-smoothing:antialiased;
-}
-::selection{background:rgba(192,132,252,.3);color:#fff}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Docs — 技术文档站</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-.bg-noise{
-  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.035;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:200px;
-}
+      /* ----- Dark Theme (Default) ----- */
+      :root {
+        --bg-deep: #0a0c10;
+        --bg-surface: #11141b;
+        --bg-card: #161a24;
+        --bg-card-hover: #1c2130;
+        --bg-code: #0a0c10;
+        --border: #252a38;
+        --border-active: #3a4160;
+        --text-primary: #e8eaf0;
+        --text-secondary: #8b90a5;
+        --text-muted: #555a70;
+        --accent: #c084fc;
+        --accent-soft: rgba(192, 132, 252, 0.12);
+        --accent-rgb: 192, 132, 252;
+        --radius: 16px;
+        --radius-sm: 10px;
+        --mono: "JetBrains Mono", monospace;
+        --serif: "Noto Serif SC", serif;
+        --sans: "Inter", system-ui, -apple-system, sans-serif;
+      }
 
-.container{max-width:960px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+      /* ----- Light Theme ----- */
+      [data-theme="light"] {
+        --bg-deep: #fafafa;
+        --bg-surface: #f0f1f5;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f5f6f8;
+        --bg-code: #f5f6f8;
+        --border: #e2e4ea;
+        --border-active: #d0d3db;
+        --text-primary: #1a1d26;
+        --text-secondary: #4b5063;
+        --text-muted: #9ca3b3;
+        --accent-soft: rgba(192, 132, 252, 0.1);
+      }
 
-/* ===== NAV ===== */
-.nav{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:20px 0;border-bottom:1px solid var(--border);margin-bottom:64px;
-}
-.nav-brand{
-  display:flex;align-items:center;gap:12px;
-  font-family:var(--mono);font-size:14px;font-weight:700;
-  color:var(--text-primary);text-decoration:none;letter-spacing:.02em;
-}
-.nav-brand .logo{
-  width:36px;height:36px;border-radius:10px;
-  background:var(--accent-glow);border:1px solid rgba(192,132,252,.25);
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;color:var(--accent);
-}
-.nav-links{display:flex;gap:8px}
-.nav-links a{
-  font-family:var(--mono);font-size:12px;color:var(--text-muted);
-  text-decoration:none;padding:6px 14px;border-radius:100px;
-  border:1px solid var(--border);transition:all .25s ease;letter-spacing:.04em;
-}
-.nav-links a:hover{color:var(--text-primary);border-color:var(--border-active)}
+      html {
+        scroll-behavior: smooth;
+        font-size: 16px;
+      }
+      body {
+        background: var(--bg-deep);
+        color: var(--text-primary);
+        font-family: var(--sans);
+        line-height: 1.7;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        transition:
+          background 0.3s ease,
+          color 0.3s ease;
+      }
+      ::selection {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
 
-/* ===== HERO ===== */
-.hero{padding:40px 0 80px;text-align:center}
-.hero h1{
-  font-family:var(--serif);font-weight:900;
-  font-size:clamp(2.4rem,5vw,3.6rem);line-height:1.2;
-  letter-spacing:-.02em;margin-bottom:16px;
-  background:linear-gradient(135deg,#e8eaf0 0%,#c084fc 60%,#38bdf8 100%);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
-.hero p{
-  font-size:1.1rem;color:var(--text-secondary);
-  max-width:520px;margin:0 auto;
-}
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 24px;
+        position: relative;
+        z-index: 1;
+      }
 
-/* ===== SECTION ===== */
-.section{margin-bottom:56px}
-.section-header{
-  display:flex;align-items:center;gap:12px;margin-bottom:24px;
-}
-.section-header .icon{
-  width:40px;height:40px;border-radius:12px;
-  display:flex;align-items:center;justify-content:center;font-size:20px;
-  background:var(--accent-glow);border:1px solid rgba(192,132,252,.2);
-}
-.section-header h2{
-  font-family:var(--serif);font-size:1.4rem;font-weight:700;
-}
-.section-header .count{
-  font-family:var(--mono);font-size:11px;color:var(--text-muted);
-  background:rgba(255,255,255,.04);border-radius:6px;padding:3px 10px;
-}
+      /* ===== NAV ===== */
+      .site-nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(var(--bg-deep-rgb, 10, 12, 16), 0.9);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+        transition: border-color 0.3s ease;
+        margin-bottom: 64px;
+      }
+      [data-theme="light"] .site-nav {
+        background: rgba(250, 250, 250, 0.9);
+      }
+      .site-nav-inner {
+        margin: 0 auto;
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+      }
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--mono);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-decoration: none;
+        letter-spacing: 0.02em;
+      }
+      .nav-brand .logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--accent);
+      }
+      .site-nav-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .site-nav-links {
+        display: flex;
+        gap: 8px;
+      }
+      .site-nav-links a {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-muted);
+        text-decoration: none;
+        padding: 6px 14px;
+        border-radius: 100px;
+        border: 1px solid var(--border);
+        transition: all 0.25s ease;
+        letter-spacing: 0.04em;
+      }
+      .site-nav-links a:hover {
+        color: var(--text-primary);
+        border-color: var(--border-active);
+      }
 
-/* ===== ARTICLE CARDS ===== */
-.article-list{display:flex;flex-direction:column;gap:16px}
-.article-card{
-  display:grid;grid-template-columns:1fr auto;gap:0;
-  background:var(--bg-card);border:1px solid var(--border);
-  border-radius:var(--radius);overflow:hidden;transition:all .3s ease;
-  text-decoration:none;color:inherit;
-}
-.article-card:hover{
-  border-color:var(--border-active);
-  transform:translateY(-2px);
-  box-shadow:0 8px 32px rgba(0,0,0,.3);
-}
-.article-card-body{padding:28px 32px;display:flex;flex-direction:column;gap:10px}
-.article-card-meta{
-  display:flex;align-items:center;gap:12px;
-  font-family:var(--mono);font-size:12px;color:var(--text-muted);
-}
-.article-card-meta .tag{
-  padding:3px 10px;border-radius:100px;
-  border:1px solid var(--border);font-size:11px;letter-spacing:.03em;
-}
-.article-card h3{
-  font-family:var(--serif);font-size:1.2rem;font-weight:700;
-  line-height:1.4;transition:color .25s;
-}
-.article-card:hover h3{color:var(--accent)}
-.article-card .desc{font-size:.92rem;color:var(--text-secondary);line-height:1.6}
-.article-card-arrow{
-  display:flex;align-items:center;padding:0 24px;
-  color:var(--text-muted);font-size:20px;transition:all .3s ease;
-}
-.article-card:hover .article-card-arrow{color:var(--accent);transform:translateX(4px)}
+      /* Theme Toggle */
+      .theme-toggle {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--text-muted);
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+      }
+      .theme-toggle:hover {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
 
-/* ===== COMING SOON ===== */
-.coming-soon{
-  background:var(--bg-card);border:1px dashed var(--border);
-  border-radius:var(--radius);padding:32px;text-align:center;
-  color:var(--text-muted);font-size:.95rem;
-}
-.coming-soon .emoji{font-size:28px;margin-bottom:8px}
+      /* ===== HERO ===== */
+      .hero {
+        padding: 40px 0 80px;
+        text-align: center;
+      }
+      .hero h1 {
+        font-family: var(--serif);
+        font-weight: 900;
+        font-size: clamp(2.4rem, 5vw, 3.6rem);
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin-bottom: 16px;
+        background: linear-gradient(
+          135deg,
+          var(--text-primary) 0%,
+          var(--accent) 60%,
+          #38bdf8 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .hero p {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        max-width: 520px;
+        margin: 0 auto;
+      }
 
-/* ===== FOOTER ===== */
-footer{
-  padding:48px 0 32px;text-align:center;
-  border-top:1px solid var(--border);color:var(--text-muted);
-  font-size:13px;font-family:var(--mono);margin-top:40px;
-}
-footer a{color:var(--accent);text-decoration:none}
-footer a:hover{text-decoration:underline}
+      /* ===== SECTION ===== */
+      .section {
+        margin-bottom: 56px;
+      }
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .section-header .icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.2);
+      }
+      .section-header h2 {
+        font-family: var(--serif);
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+      .section-header .count {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-muted);
+        background: rgba(var(--accent-rgb), 0.06);
+        border-radius: 6px;
+        padding: 3px 10px;
+      }
 
-/* ===== RESPONSIVE ===== */
-@media(max-width:640px){
-  .article-card{grid-template-columns:1fr}
-  .article-card-arrow{display:none}
-  .article-card-body{padding:20px 24px}
-  .nav-links{display:none}
-}
-</style>
-</head>
-<body>
-<div class="bg-noise"></div>
+      /* ===== ARTICLE CARDS ===== */
+      .article-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .article-card {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+      }
+      .article-card:hover {
+        border-color: var(--border-active);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+      [data-theme="light"] .article-card:hover {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      }
+      .article-card-body {
+        padding: 28px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .article-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .article-card-meta .tag {
+        padding: 3px 10px;
+        border-radius: 100px;
+        border: 1px solid var(--border);
+        font-size: 11px;
+        letter-spacing: 0.03em;
+      }
+      .article-card h3 {
+        font-family: var(--serif);
+        font-size: 1.2rem;
+        font-weight: 700;
+        line-height: 1.4;
+        transition: color 0.25s;
+      }
+      .article-card:hover h3 {
+        color: var(--accent);
+      }
+      .article-card .desc {
+        font-size: 0.92rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .article-card-arrow {
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        color: var(--text-muted);
+        font-size: 20px;
+        transition: all 0.3s ease;
+      }
+      .article-card:hover .article-card-arrow {
+        color: var(--accent);
+        transform: translateX(4px);
+      }
 
-<div class="container">
-  <nav class="nav">
-    <a href="/" class="nav-brand">
-      <span class="logo">📖</span>
-      AI Docs
-    </a>
-    <div class="nav-links">
-      <a href="/">首页</a>
-      <a href="https://github.com" target="_blank">GitHub</a>
-    </div>
-  </nav>
+      /* ===== COMING SOON ===== */
+      .coming-soon {
+        background: var(--bg-card);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius);
+        padding: 32px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+      .coming-soon .emoji {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
 
-  <section class="hero">
-    <h1>技术文档站</h1>
-    <p>深入浅出，拆解前沿 AI 技术的核心概念与架构设计</p>
-  </section>
+      /* ===== FOOTER ===== */
+      footer {
+        padding: 48px 0 32px;
+        text-align: center;
+        border-top: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 13px;
+        font-family: var(--mono);
+        margin-top: 40px;
+        transition: border-color 0.3s ease;
+      }
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      footer a:hover {
+        text-decoration: underline;
+      }
 
-  <!-- ===== OpenClaw ===== -->
-  <section class="section">
-    <div class="section-header">
-      <div class="icon">🐾</div>
-      <h2>OpenClaw</h2>
-      <span class="count">1 篇</span>
-    </div>
-    <div class="article-list">
-      <a href="article/openclaw-core-concepts.html" class="article-card">
-        <div class="article-card-body">
-          <div class="article-card-meta">
-            <span class="tag">OpenClaw</span>
-            <span>2026-05-20</span>
-          </div>
-          <h3>灵魂文件系统：OpenClaw 八大核心概念详解</h3>
-          <div class="desc">SOUL、USER、AGENTS、HEARTBEAT、IDENTITY、BOOTSTRAP、TOOLS、MEMORY — 8 个 Markdown 文件如何定义一个 AI Agent 的全部</div>
+      /* ===== RESPONSIVE ===== */
+      @media (max-width: 640px) {
+        .article-card {
+          grid-template-columns: 1fr;
+        }
+        .article-card-arrow {
+          display: none;
+        }
+        .article-card-body {
+          padding: 20px 24px;
+        }
+        .site-nav-links {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <section class="hero">
+        <h1>技术文档站</h1>
+        <p>深入浅出，拆解前沿 AI 技术的核心概念与架构设计</p>
+      </section>
+
+      <!-- ===== OpenClaw ===== -->
+      <section class="section">
+        <div class="section-header">
+          <div class="icon">🐾</div>
+          <h2>OpenClaw</h2>
+          <span class="count">3 篇</span>
         </div>
-        <div class="article-card-arrow">→</div>
-      </a>
+        <div class="article-list">
+          <a href="article/openclaw-core-concepts.html" class="article-card">
+            <div class="article-card-body">
+              <div class="article-card-meta">
+                <span class="tag">OpenClaw</span>
+                <span>2026-05-20</span>
+              </div>
+              <h3>灵魂文件系统：OpenClaw 八大核心概念详解</h3>
+              <div class="desc">
+                SOUL、USER、AGENTS、HEARTBEAT、IDENTITY、BOOTSTRAP、TOOLS、MEMORY
+                — 8 个 Markdown 文件如何定义一个 AI Agent 的全部
+              </div>
+            </div>
+            <div class="article-card-arrow">→</div>
+          </a>
+          <a
+            href="article/openclaw-sandbox-principles.html"
+            class="article-card"
+          >
+            <div class="article-card-body">
+              <div class="article-card-meta">
+                <span class="tag">OpenClaw</span>
+                <span class="tag">安全</span>
+                <span>2026-05-22</span>
+              </div>
+              <h3>OpenClaw 沙箱原理：安全隔离机制详解</h3>
+              <div class="desc">
+                沙箱模式、工具隔离、FsBridge 文件代理、安全边界（bind 挂载 /
+                网络模式 / 环境变量过滤）、Docker / SSH / OpenShell 后端选择
+              </div>
+            </div>
+            <div class="article-card-arrow">→</div>
+          </a>
+          <a href="article/openclaw-security-prompts.html" class="article-card">
+            <div class="article-card-body">
+              <div class="article-card-meta">
+                <span class="tag">OpenClaw</span>
+                <span class="tag">安全</span>
+                <span>2026-05-22</span>
+              </div>
+              <h3>OpenClaw 安全提示词：五维安全防线</h3>
+              <div class="desc">
+                核心安全提示词、Control
+                控制安全、工具调用审批、沙箱隔离策略、Workspace 路径隔离 —
+                从提示词到运行时的完整安全体系
+              </div>
+            </div>
+            <div class="article-card-arrow">→</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- ===== More sections ===== -->
+      <section class="section">
+        <div class="section-header">
+          <div class="icon">🔮</div>
+          <h2>更多专题</h2>
+        </div>
+        <div class="coming-soon">
+          <div class="emoji">🚧</div>
+          更多文章正在路上，敬请期待
+        </div>
+      </section>
     </div>
-  </section>
 
-  <!-- ===== More sections ===== -->
-  <section class="section">
-    <div class="section-header">
-      <div class="icon">🔮</div>
-      <h2>更多专题</h2>
-    </div>
-    <div class="coming-soon">
-      <div class="emoji">🚧</div>
-      更多文章正在路上，敬请期待
-    </div>
-  </section>
+    <footer style="border-top: 1px solid var(--border)">
+      <div class="container">
+        <p>
+          AI Docs · 基于
+          <a href="https://pages.github.com" target="_blank">GitHub Pages</a>
+          构建
+        </p>
+      </div>
+    </footer>
 
-</div>
-
-<footer>
-  <div class="container">
-    <p>AI Docs · 基于 <a href="https://pages.github.com" target="_blank">GitHub Pages</a> 构建</p>
-  </div>
-</footer>
-
-</body>
+    <script src="assets/js/nav.js"></script>
+  </body>
 </html>
