@@ -19,7 +19,7 @@
       border-bottom-color:#e2e4ea;
     }
     .site-nav-inner{
-      max-width:960px;margin:0 auto;padding:0 24px;
+      margin:0 auto;padding:0 24px;
       display:flex;align-items:center;justify-content:space-between;
       height:60px;
     }

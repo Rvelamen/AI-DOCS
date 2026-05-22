@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /assets/
+
+# 请将下方的 example.com 替换为实际部署的域名
+Sitemap: https://example.com/sitemap.xml
