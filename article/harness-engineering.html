@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harness Engineering 完整指南 — 从 Prompt 到 Harness 的 AI Agent 工程化实践</title>
+<meta name="description" content="Harness Engineering 完整指南：核心定义、四大支柱、业界标杆案例（OpenAI/Anthropic/Stripe）、核心组件详解、实践指南与成熟度评估模型。" />
+<meta name="keywords" content="Harness Engineering, AI Agent, 工程化, 智能体, 上下文架构, 持久化记忆" />
+<meta name="author" content="AI Docs" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://rvelamen.github.io/AI-DOCS/article/harness-engineering.html" />
+<meta property="og:title" content="Harness Engineering 完整指南 — 从 Prompt 到 Harness 的 AI Agent 工程化实践" />
+<meta property="og:description" content="Harness Engineering 完整指南：核心定义、四大支柱、业界标杆案例、核心组件详解、实践指南与成熟度评估模型。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://rvelamen.github.io/AI-DOCS/article/harness-engineering.html" />
+<meta property="og:site_name" content="AI Docs" />
+<meta property="article:published_time" content="2026-05-22" />
+<meta property="article:tag" content="Harness Engineering" />
+<meta property="article:tag" content="AI Agent" />
+<meta property="article:tag" content="工程化" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Harness Engineering 完整指南 — 从 Prompt 到 Harness 的 AI Agent 工程化实践" />
+<meta name="twitter:description" content="Harness Engineering 完整指南：核心定义、四大支柱、业界标杆案例、核心组件详解、实践指南与成熟度评估模型。" />
+<link rel="stylesheet" href="../assets/css/article-style.css">
+<style>
+:root{--accent:#f59e0b;--accent-soft:rgba(245, 158, 11,.12);--accent-rgb:245, 158, 11;}
+</style>
+</head>
+<body>
+<header class="article-header">
+  <div class="article-tags"><span>Harness Engineering</span>
+    <span>AI Agent</span>
+    <span>工程化</span></div>
+  <h1>Harness Engineering 完整指南</h1>
+  <p class="lead">从 Prompt 到 Harness：AI Agent 工程化范式演进</p>
+  <div class="meta">2026-05-22 · 阅读约 45 分钟</div>
+</header>
+<div class="article-layout">
+<aside class="toc-sidebar">
+<h4>目录</h4>
+<ul>
+  <li><a href="#什么是-Harness-Engineering">一、什么是 Harness Engineering？</a></li>
+  <li class="sub"><a href="#1-核心定义">1.1 核心定义</a></li>
+  <li class="sub"><a href="#2-概念演进从-Prompt-到-Harness">1.2 概念演进：从 Prompt 到 Harness</a></li>
+  <li class="sub"><a href="#3-术语的诞生">1.3 术语的诞生</a></li>
+  <li><a href="#为什么需要-Harness-Engineering">二、为什么需要 Harness Engineering？</a></li>
+  <li class="sub"><a href="#1-核心洞察瓶颈在基础设施不在模型智能">2.1 核心洞察：瓶颈在基础设施，不在模型智能</a></li>
+  <li class="sub"><a href="#2-Agent-的四大典型失败模式">2.2 Agent 的四大典型失败模式</a></li>
+  <li class="sub"><a href="#3-上下文窗口的甜蜜区间">2.3 上下文窗口的"甜蜜区间"</a></li>
+  <li><a href="#Harness-Engineering-的四大支柱">三、Harness Engineering 的四大支柱</a></li>
+  <li class="sub"><a href="#1-支柱一上下文架构">3.1 支柱一：上下文架构</a></li>
+  <li class="sub"><a href="#核心原则Agent-应当恰好获得当前任务所需的上下文-不多不少">核心原则：Agent 应当恰好获得当前任务所需的上下文——不多不少。</a></li>
+  <li class="sub"><a href="#2-支柱二Agent-专业化">3.2 支柱二：Agent 专业化</a></li>
+  <li class="sub"><a href="#核心原则专注于特定领域拥有受限工具的-Agent-优于拥有全部权限的通用-Agent">核心原则：专注于特定领域、拥有受限工具的 Agent 优于拥有全部权限的通用 Agent。</a></li>
+  <li class="sub"><a href="#3-支柱三持久化记忆">3.3 支柱三：持久化记忆</a></li>
+  <li class="sub"><a href="#核心原则进度持久化在文件系统上而非上下文窗口中">核心原则：进度持久化在文件系统上，而非上下文窗口中。</a></li>
+  <li class="sub"><a href="#4-支柱四结构化执行">3.4 支柱四：结构化执行</a></li>
+  <li class="sub"><a href="#核心原则将思考与执行分离">核心原则：将思考与执行分离。</a></li>
+  <li><a href="#业界标杆案例">四、业界标杆案例</a></li>
+  <li class="sub"><a href="#1-OpenAI百万行代码的零手写实验">4.1 OpenAI：百万行代码的零手写实验</a></li>
+  <li class="sub"><a href="#2-Anthropic16-个-Agent-构建-C-编译器">4.2 Anthropic：16 个 Agent 构建 C 编译器</a></li>
+  <li class="sub"><a href="#3-Stripe千级-PR-的-Minions-系统">4.3 Stripe：千级 PR 的 Minions 系统</a></li>
+  <li><a href="#核心组件详解">五、核心组件详解</a></li>
+  <li class="sub"><a href="#1-AGENTSmd---Agent-的活文档">5.1 AGENTS.md —— Agent 的活文档</a></li>
+  <li class="sub"><a href="#2-架构约束与自动化执行">5.2 架构约束与自动化执行</a></li>
+  <li class="sub"><a href="#3-可观测性集成">5.3 可观测性集成</a></li>
+  <li class="sub"><a href="#4-熵管理与垃圾回收">5.4 熵管理与"垃圾回收"</a></li>
+  <li><a href="#工程师角色的转变">六、工程师角色的转变</a></li>
+  <li class="sub"><a href="#1-从写代码到设计环境">6.1 从写代码到设计环境</a></li>
+  <li class="sub"><a href="#2-规划是新的编码">6.2 规划是新的编码</a></li>
+  <li class="sub"><a href="#3-并行编排的两种风格">6.3 并行编排的两种风格</a></li>
+  <li><a href="#业界共识与分歧">七、业界共识与分歧</a></li>
+  <li class="sub"><a href="#1-六大共识">7.1 六大共识</a></li>
+  <li class="sub"><a href="#2-四大分歧">7.2 四大分歧</a></li>
+  <li class="sub"><a href="#3-三大空白区">7.3 三大空白区</a></li>
+  <li><a href="#最佳实践总结">八、最佳实践总结</a></li>
+  <li class="sub"><a href="#1-立即可行的行动清单">8.1 立即可行的行动清单</a></li>
+  <li class="sub"><a href="#2-Harness-成熟度评估模型">8.2 Harness 成熟度评估模型</a></li>
+  <li class="sub"><a href="#3-关键组件检查清单">8.3 关键组件检查清单</a></li>
+  <li><a href="#总结">九、总结</a></li>
+  <li><a href="#参考资料">参考资料</a></li>
+</ul>
+</aside>
+
+<main class="article-main">
+<div class="prose">
+
+<h2 id="什么是-Harness-Engineering">一、什么是 Harness Engineering？</h2>
+
+<h3 id="1-核心定义"><strong>1.1 核心定义</strong></h3>
+<p>Harness Engineering 是围绕 AI 智能体设计与构建的约束系统、反馈回路、工作流控制和持续改进循环的一套系统工程实践。它不优化模型本身，而是优化 Agent 的运行环境。</p>
+
+<h3 id="2-概念演进从-Prompt-到-Harness"><strong>1.2 概念演进：从 Prompt 到 Harness</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image1.png" alt="工程范式演进图">
+  <figcaption><strong>工程范式演进图</strong></figcaption>
+</figure>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image2.png" alt="三者的嵌套关系：">
+  <figcaption><strong>三者的嵌套关系：</strong></figcaption>
+</figure>
+
+<h3 id="3-术语的诞生"><strong>1.3 术语的诞生</strong></h3>
+<p><strong>点击图片可查看完整电子表格</strong></p>
+
+<h2 id="为什么需要-Harness-Engineering">二、为什么需要 Harness Engineering？</h2>
+
+<h3 id="1-核心洞察瓶颈在基础设施不在模型智能"><strong>2.1 核心洞察：瓶颈在基础设施，不在模型智能</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image4.png" alt="实验数据：Harness 的威力">
+  <figcaption><strong>实验数据：Harness 的威力</strong></figcaption>
+</figure>
+
+<h3 id="2-Agent-的四大典型失败模式"><strong>2.2 Agent 的四大典型失败模式</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image5.png" alt="Agent 失败模式全景图">
+  <figcaption><strong>Agent 失败模式全景图</strong></figcaption>
+</figure>
+
+<h3 id="3-上下文窗口的甜蜜区间"><strong>2.3 上下文窗口的"甜蜜区间"</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image6.png" alt="上下文窗口利用率与输出质量关系">
+  <figcaption><strong>上下文窗口利用率与输出质量关系</strong></figcaption>
+</figure>
+
+<h2 id="Harness-Engineering-的四大支柱">三、Harness Engineering 的四大支柱</h2>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image7.png" alt="四大支柱架构图">
+  <figcaption><strong>四大支柱架构图</strong></figcaption>
+</figure>
+
+<h3 id="1-支柱一上下文架构"><strong>3.1 支柱一：上下文架构</strong></h3>
+
+<h3 id="核心原则Agent-应当恰好获得当前任务所需的上下文-不多不少">核心原则：Agent 应当恰好获得当前任务所需的上下文——不多不少。</h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image8.png" alt="三层上下文体系">
+  <figcaption><strong>三层上下文体系</strong></figcaption>
+</figure>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image9.png" alt="反面案例：巨大的 AGENTS.md">
+  <figcaption><strong>反面案例：巨大的 AGENTS.md</strong></figcaption>
+</figure>
+
+<h3 id="2-支柱二Agent-专业化"><strong>3.2 支柱二：Agent 专业化</strong></h3>
+
+<h3 id="核心原则专注于特定领域拥有受限工具的-Agent-优于拥有全部权限的通用-Agent">核心原则：专注于特定领域、拥有受限工具的 Agent 优于拥有全部权限的通用 Agent。</h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image10.png" alt="Agent 角色分工表">
+  <figcaption><strong>Agent 角色分工表</strong></figcaption>
+</figure>
+
+<h3 id="3-支柱三持久化记忆"><strong>3.3 支柱三：持久化记忆</strong></h3>
+
+<h3 id="核心原则进度持久化在文件系统上而非上下文窗口中">核心原则：进度持久化在文件系统上，而非上下文窗口中。</h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image11.png" alt="跨会话持久化记忆架构">
+  <figcaption><strong>跨会话持久化记忆架构</strong></figcaption>
+</figure>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image12.png" alt="编码 Agent 的典型会话启动流程：">
+  <figcaption><strong>编码 Agent 的典型会话启动流程：</strong></figcaption>
+</figure>
+
+<h3 id="4-支柱四结构化执行"><strong>3.4 支柱四：结构化执行</strong></h3>
+
+<h3 id="核心原则将思考与执行分离">核心原则：将思考与执行分离。</h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image13.png" alt="结构化执行流程">
+  <figcaption><strong>结构化执行流程</strong></figcaption>
+</figure>
+
+<h2 id="业界标杆案例">四、业界标杆案例</h2>
+
+<h3 id="1-OpenAI百万行代码的零手写实验"><strong>4.1 OpenAI：百万行代码的零手写实验</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image14.png" alt="OpenAI 实验概况">
+  <figcaption><strong>OpenAI 实验概况</strong></figcaption>
+</figure>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image15.png" alt="五大 Harness 原则：">
+  <figcaption><strong>五大 Harness 原则：</strong></figcaption>
+</figure>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image16.png" alt="架构约束强制执行：">
+  <figcaption><strong>架构约束强制执行：</strong></figcaption>
+</figure>
+
+<h3 id="2-Anthropic16-个-Agent-构建-C-编译器"><strong>4.2 Anthropic：16 个 Agent 构建 C 编译器</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image17.png" alt="Carlini C 编译器项目数据">
+  <figcaption><strong>Carlini C 编译器项目数据</strong></figcaption>
+</figure>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image18.png" alt="关键 Harness 设计：">
+  <figcaption><strong>关键 Harness 设计：</strong></figcaption>
+</figure>
+
+<h3 id="3-Stripe千级-PR-的-Minions-系统"><strong>4.3 Stripe：千级 PR 的 Minions 系统</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image19.png" alt="Stripe Minions 架构">
+  <figcaption><strong>Stripe Minions 架构</strong></figcaption>
+</figure>
+
+<h2 id="核心组件详解">五、核心组件详解</h2>
+
+<h3 id="1-AGENTSmd---Agent-的活文档"><strong>5.1 AGENTS.md —— Agent 的活文档</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image20.png" alt="AGENTS.md 定位与特性">
+  <figcaption><strong>AGENTS.md 定位与特性</strong></figcaption>
+</figure>
+
+<h3 id="2-架构约束与自动化执行"><strong>5.2 架构约束与自动化执行</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image21.png" alt="自定义 Linter 的巧妙设计">
+  <figcaption><strong>自定义 Linter 的巧妙设计</strong></figcaption>
+</figure>
+
+<h3 id="3-可观测性集成"><strong>5.3 可观测性集成</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image22.png" alt="可观测性集成架构">
+  <figcaption><strong>可观测性集成架构</strong></figcaption>
+</figure>
+
+<h3 id="4-熵管理与垃圾回收"><strong>5.4 熵管理与"垃圾回收"</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image23.png" alt="熵管理机制">
+  <figcaption><strong>熵管理机制</strong></figcaption>
+</figure>
+
+<h2 id="工程师角色的转变">六、工程师角色的转变</h2>
+
+<h3 id="1-从写代码到设计环境"><strong>6.1 从写代码到设计环境</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image24.png" alt="工程师角色转变">
+  <figcaption><strong>工程师角色转变</strong></figcaption>
+</figure>
+
+<h3 id="2-规划是新的编码"><strong>6.2 规划是新的编码</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image25.png" alt="规划优先原则">
+  <figcaption><strong>规划优先原则</strong></figcaption>
+</figure>
+
+<h3 id="3-并行编排的两种风格"><strong>6.3 并行编排的两种风格</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image26.png" alt="并行工作模式对比">
+  <figcaption><strong>并行工作模式对比</strong></figcaption>
+</figure>
+
+<h2 id="业界共识与分歧">七、业界共识与分歧</h2>
+
+<h3 id="1-六大共识"><strong>7.1 六大共识</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image27.png" alt="业界六大共识">
+  <figcaption><strong>业界六大共识</strong></figcaption>
+</figure>
+
+<h3 id="2-四大分歧"><strong>7.2 四大分歧</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image28.png" alt="业界四大分歧">
+  <figcaption><strong>业界四大分歧</strong></figcaption>
+</figure>
+
+<h3 id="3-三大空白区"><strong>7.3 三大空白区</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image29.png" alt="三大空白区（最值得探索的方向）">
+  <figcaption><strong>三大空白区（最值得探索的方向）</strong></figcaption>
+</figure>
+
+<h2 id="最佳实践总结">八、最佳实践总结</h2>
+
+<h3 id="1-立即可行的行动清单"><strong>8.1 立即可行的行动清单</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image30.png" alt="立即可行的行动清单">
+  <figcaption><strong>立即可行的行动清单</strong></figcaption>
+</figure>
+
+<h3 id="2-Harness-成熟度评估模型"><strong>8.2 Harness 成熟度评估模型</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image31.png" alt="Harness 成熟度评估模型">
+  <figcaption><strong>Harness 成熟度评估模型</strong></figcaption>
+</figure>
+
+<h3 id="3-关键组件检查清单"><strong>8.3 关键组件检查清单</strong></h3>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image32.png" alt="关键 Harness 组件检查清单">
+  <figcaption><strong>关键 Harness 组件检查清单</strong></figcaption>
+</figure>
+
+<h2 id="总结">九、总结</h2>
+
+<figure class="figure">
+  <img src="../assets/images/harness/image33.png" alt="核心结论">
+  <figcaption><strong>核心结论</strong></figcaption>
+</figure>
+
+<h2 id="参考资料">参考资料</h2>
+<p>OpenAI — Harness engineering: leveraging Codex in an agent-first world</p>
+<p>Anthropic — Effective harnesses for long-running agents</p>
+<p>Nicholas Carlini — Building a C Compiler with Claude</p>
+<p>Martin Fowler — Harness Engineering</p>
+<p>Mitchell Hashimoto — My AI Adoption Journey</p>
+<p>Charlie Guo — The Emerging "Harness Engineering" Playbook</p>
+
+</div></main>
+</div>
+<footer class="article-footer">
+  <p>基于 <a href="https://github.com/Rvelamen" target="_blank">Rvelamen</a> 整理 · Harness Engineering 系列</p>
+</footer>
+<script src="../assets/js/nav.js"></script>
+<script>
+const tocLinks=document.querySelectorAll('.toc-sidebar a');
+const headings=document.querySelectorAll('.prose h2[id], .prose h3[id]');
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      tocLinks.forEach(link=>link.classList.remove('active'));
+      const active=document.querySelector('.toc-sidebar a[href="#'+entry.target.id+'"]');
+      if(active)active.classList.add('active');
+    }
+  });
+},{rootMargin:'-80px 0px -60% 0px',threshold:0});
+headings.forEach(h=>observer.observe(h));
+</script>
+</body>
+</html>

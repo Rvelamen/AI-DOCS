@@ -251,6 +251,10 @@ body {
 .toc-sidebar li {
   margin-bottom: 4px;
 }
+.toc-sidebar li.sub {
+  padding-left: 14px;
+  opacity: 0.85;
+}
 .toc-sidebar a {
   display: block;
   font-size: 13px;
