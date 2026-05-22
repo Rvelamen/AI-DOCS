@@ -77,9 +77,9 @@
   const isArticle = path.includes('/article/');
 
   // ---- Determine brand / back link ----
-  const homeHref = isArticle ? '../index.html' : '/';
+  const homeHref = 'https://rvelamen.github.io/AI-DOCS/';
   const brandHtml = isHome
-    ? '<a href="/" class="nav-brand"><span class="logo">📖</span>AI Docs</a>'
+    ? '<a href="https://rvelamen.github.io/AI-DOCS/" class="nav-brand"><span class="logo">📖</span>AI Docs</a>'
     : '<a href="' + homeHref + '" class="nav-brand back">返回首页</a>';
 
   // ---- Build nav HTML ----
@@ -91,7 +91,7 @@
           '<button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>' +
           '<div class="site-nav-links">' +
             '<a href="' + homeHref + '">首页</a>' +
-            '<a href="https://github.com/openclaw/openclaw" target="_blank">GitHub</a>' +
+            '<a href="https://github.com/Rvelamen" target="_blank">GitHub</a>' +
           '</div>' +
         '</div>' +
       '</div>' +
