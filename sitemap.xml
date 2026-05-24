@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- 请将下方的 example.com 替换为实际部署的域名 -->
+  <!-- 请将下方的 rvelamen.github.io/AI-DOCS 替换为实际部署的域名 -->
   <url>
-    <loc>https://example.com/</loc>
+    <loc>https://rvelamen.github.io/AI-DOCS/</loc>
     <lastmod>2026-05-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://example.com/article/openclaw-core-concepts.html</loc>
+    <loc>https://rvelamen.github.io/AI-DOCS/article/openclaw-core-concepts.html</loc>
     <lastmod>2026-05-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://example.com/article/openclaw-sandbox-principles.html</loc>
+    <loc>https://rvelamen.github.io/AI-DOCS/article/openclaw-sandbox-principles.html</loc>
     <lastmod>2026-05-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://example.com/article/openclaw-security-prompts.html</loc>
+    <loc>https://rvelamen.github.io/AI-DOCS/article/openclaw-security-prompts.html</loc>
     <lastmod>2026-05-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://example.com/article/harness-engineering.html</loc>
+    <loc>https://rvelamen.github.io/AI-DOCS/article/harness-engineering.html</loc>
     <lastmod>2026-05-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
