@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# 请将下方的 example.com 替换为实际部署的域名
 Sitemap: https://rvelamen.github.io/AI-DOCS/sitemap.xml
